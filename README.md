@@ -28,6 +28,6 @@ Project/
 
 | Email | Mật khẩu | Role |
 |---|---|---|
-| an@example.com | password123 | MEMBER |
-| binh@example.com | password123 | MEMBER |
-| admin@example.com | password123 | ADMIN |
+| test@test.com | password123 | MEMBER |
+| test2@gmail.com | Test@12345 | MEMBER |
+| admin2@test.com | admin123456 | ADMIN |
