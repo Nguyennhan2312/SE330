@@ -1,0 +1,5 @@
+﻿BE/target/
+FE/node_modules/
+FE/.next/
+FE/.env.local
+.vscode/
