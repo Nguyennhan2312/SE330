@@ -1,0 +1,27 @@
+{
+    "java.compile.nullAnalysis.mode": "automatic",
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "SE330",
+            "database": "postgres",
+            "username": "postgres",
+            "password": "secret"
+        },
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "library_db",
+            "database": "library_db",
+            "username": "postgres",
+            "password": "secret"
+        }
+    ]
+}
