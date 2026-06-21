@@ -1,12 +1,16 @@
 package com.library.app.service.impl;
 
 import com.library.app.dto.request.AdminUpdateUserRequest;
+import com.library.app.dto.response.AppResponse.BorrowResponse;
 import com.library.app.dto.response.AppResponse.UserProfile;
+import com.library.app.entity.BorrowRecord;
 import com.library.app.entity.User;
 import com.library.app.exception.AppException;
 import com.library.app.repository.BorrowRecordRepository;
 import com.library.app.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -61,6 +65,20 @@ public class AdminService {
         // Xóa lịch sử mượn sách trước để tránh lỗi khóa ngoại
         borrowRecordRepository.deleteAll(borrowRecordRepository.findByUserId(id));
         userRepository.deleteById(id);
+    }
+
+    public List<BorrowResponse> getUserLoans(Long id) {
+        if (!userRepository.existsById(id)) throw AppException.notFound("Không tìm thấy người dùng");
+        return borrowRecordRepository
+                .findByUserIdAndStatus(id, BorrowRecord.BorrowStatus.ACTIVE)
+                .stream().map(BorrowResponse::from).collect(Collectors.toList());
+    }
+
+    public List<BorrowResponse> getUserLoanHistory(Long id) {
+        if (!userRepository.existsById(id)) throw AppException.notFound("Không tìm thấy người dùng");
+        return borrowRecordRepository
+                .findByUserIdAndStatusNot(id, BorrowRecord.BorrowStatus.ACTIVE)
+                .stream().map(BorrowResponse::from).collect(Collectors.toList());
     }
 
     private User findById(Long id) {

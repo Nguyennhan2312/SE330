@@ -31,6 +31,7 @@ export function AdminUsersPanel() {
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
   const [editUser,  setEditUser]  = useState<UserProfile | null>(null);
   const [deleteId,  setDeleteId]  = useState<number | null>(null);
+  const [viewUser,  setViewUser]  = useState<UserProfile | null>(null);
   const nav = useRouter();
 
   useEffect(() => {
@@ -193,6 +194,10 @@ export function AdminUsersPanel() {
                       <td className="px-4 py-3"><StatusBadge status={user.status} /></td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
+                          <button onClick={() => setViewUser(user)}
+                            className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-600 hover:text-white transition">
+                            Chi tiết
+                          </button>
                           <button onClick={() => setEditUser(user)}
                             className="rounded-lg border border-black/15 px-3 py-1.5 text-xs font-semibold hover:bg-black hover:text-white transition">
                             Sửa
@@ -230,6 +235,14 @@ export function AdminUsersPanel() {
           message="Bạn có chắc muốn xóa tài khoản này? Hành động này không thể hoàn tác."
           onConfirm={() => handleDelete(deleteId)}
           onCancel={() => setDeleteId(null)}
+        />
+      )}
+
+      {viewUser && (
+        <ViewModal
+          user={viewUser}
+          accessToken={auth.accessToken}
+          onClose={() => setViewUser(null)}
         />
       )}
     </div>
@@ -407,5 +420,192 @@ function StatusBadge({ status }: { status: string }) {
     }`}>
       {status === "ACTIVE" ? "Hoạt động" : "Không hoạt động"}
     </span>
+  );
+}
+
+// ─── View Modal (Chi tiết user) ───────────────────────────────────────────────
+
+type BorrowRecord = {
+  id: number;
+  bookTitle?: string;
+  bookAuthor?: string;
+  borrowedAt?: string;
+  dueDate?: string;
+  returnedAt?: string;
+  status?: string;
+  fineAmount?: number;
+};
+
+function ViewModal({ user, accessToken, onClose }: {
+  user: UserProfile;
+  accessToken: string | null;
+  onClose: () => void;
+}) {
+  const [activeTab,  setActiveTab]  = useState<"info" | "loans" | "history">("info");
+  const [loans,      setLoans]      = useState<BorrowRecord[]>([]);
+  const [history,    setHistory]    = useState<BorrowRecord[]>([]);
+  const [loadingTab, setLoadingTab] = useState(false);
+
+  async function loadLoans() {
+    setLoadingTab(true);
+    try {
+      const res  = await fetch(`${API_URL}/api/admin/users/${user.id}/loans`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const body = await res.json();
+      setLoans(body.data ?? []);
+    } catch { setLoans([]); }
+    finally { setLoadingTab(false); }
+  }
+
+  async function loadHistory() {
+    setLoadingTab(true);
+    try {
+      const res  = await fetch(`${API_URL}/api/admin/users/${user.id}/loans/history`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const body = await res.json();
+      setHistory(body.data ?? []);
+    } catch { setHistory([]); }
+    finally { setLoadingTab(false); }
+  }
+
+  function handleTab(tab: "info" | "loans" | "history") {
+    setActiveTab(tab);
+    if (tab === "loans")   loadLoans();
+    if (tab === "history") loadHistory();
+  }
+
+  function fmtDate(iso?: string | null) {
+    if (!iso) return "—";
+    try { return new Date(iso).toLocaleDateString("vi-VN"); } catch { return iso; }
+  }
+
+  const statusLabel: Record<string, string> = {
+    ACTIVE: "Đang mượn", RETURNED: "Đã trả", OVERDUE: "Quá hạn", LOST: "Mất sách",
+  };
+  const statusColor: Record<string, string> = {
+    ACTIVE:   "bg-emerald-50 text-emerald-700 border-emerald-200",
+    RETURNED: "bg-blue-50 text-blue-700 border-blue-200",
+    OVERDUE:  "bg-rose-50 text-rose-700 border-rose-200",
+    LOST:     "bg-orange-50 text-orange-700 border-orange-200",
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl rounded-[24px] bg-white shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-black/8 px-7 py-5">
+          <div className="flex items-center gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-black font-serif text-lg font-bold text-white">
+              {user.fullName.trim().split(/\s+/).map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
+            </div>
+            <div>
+              <h2 className="font-serif text-xl font-bold text-black">{user.fullName}</h2>
+              <p className="text-sm text-black/50">{user.email}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-xl p-2 hover:bg-black/5 transition">
+            <svg className="h-5 w-5 text-black/50" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-black/8 px-7 pt-3">
+          {([
+            { id: "info",    label: "Thông tin" },
+            { id: "loans",   label: "Đang mượn" },
+            { id: "history", label: "Lịch sử mượn" },
+          ] as const).map((tab) => (
+            <button key={tab.id} onClick={() => handleTab(tab.id)}
+              className={`rounded-t-xl px-4 py-2 text-sm font-semibold transition ${
+                activeTab === tab.id
+                  ? "border-b-2 border-black text-black"
+                  : "text-black/45 hover:text-black"
+              }`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="max-h-[420px] overflow-y-auto p-7">
+          {activeTab === "info" && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                { label: "Họ và tên",    value: user.fullName },
+                { label: "Email",        value: user.email },
+                { label: "Số điện thoại", value: user.phone ?? "—" },
+                { label: "Địa chỉ",      value: user.address ?? "—" },
+                { label: "Ngày sinh",    value: user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString("vi-VN") : "—" },
+                { label: "Vai trò",      value: user.role === "ADMIN" ? "Quản trị viên" : user.role === "LIBRARIAN" ? "Thủ thư" : "Thành viên" },
+                { label: "Trạng thái",   value: user.status === "ACTIVE" ? "Hoạt động" : "Không hoạt động" },
+                { label: "Ngày tạo",     value: user.createdAt ? new Date(user.createdAt).toLocaleDateString("vi-VN") : "—" },
+              ].map(({ label, value }) => (
+                <div key={label} className="rounded-xl border border-black/8 bg-[#f8f7f4] px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-black/40">{label}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-black">{value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(activeTab === "loans" || activeTab === "history") && (
+            loadingTab ? (
+              <div className="flex items-center gap-3 py-8 text-sm text-black/45">
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+                Đang tải...
+              </div>
+            ) : (
+              (() => {
+                const rows = activeTab === "loans" ? loans : history;
+                if (!rows.length) return (
+                  <div className="py-10 text-center text-sm text-black/40">
+                    {activeTab === "loans" ? "Không có sách đang mượn." : "Chưa có lịch sử mượn sách."}
+                  </div>
+                );
+                return (
+                  <div className="overflow-x-auto rounded-xl border border-black/8">
+                    <table className="w-full min-w-[500px] border-collapse text-left text-sm">
+                      <thead>
+                        <tr className="bg-black text-white">
+                          <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider">Tên sách</th>
+                          <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider">Ngày mượn</th>
+                          <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider">
+                            {activeTab === "loans" ? "Hạn trả" : "Ngày trả"}
+                          </th>
+                          <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider">Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r, i) => (
+                          <tr key={i} className="border-t border-black/8 hover:bg-black/[0.02]">
+                            <td className="px-4 py-3 font-semibold text-black">
+                              <span className="line-clamp-1">{r.bookTitle ?? "—"}</span>
+                              {r.bookAuthor && <span className="block text-xs text-black/40">{r.bookAuthor}</span>}
+                            </td>
+                            <td className="px-4 py-3 text-black/60 whitespace-nowrap">{fmtDate(r.borrowedAt)}</td>
+                            <td className="px-4 py-3 text-black/60 whitespace-nowrap">
+                              {activeTab === "loans" ? fmtDate(r.dueDate) : fmtDate(r.returnedAt)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColor[r.status ?? ""] ?? "bg-black/5 text-black/50 border-black/10"}`}>
+                                {statusLabel[r.status ?? ""] ?? r.status ?? "—"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()
+            )
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

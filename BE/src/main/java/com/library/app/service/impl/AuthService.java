@@ -48,4 +48,17 @@ public class AuthService {
         String token = jwtUtil.generateToken(req.getEmail());
         return TokenResponse.of(token);
     }
+
+    public void checkEmail(String email) {
+        if (!userRepository.existsByEmail(email)) {
+            throw AppException.notFound("Không tìm thấy tài khoản với email này");
+        }
+    }
+
+    public void resetPassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> AppException.notFound("Không tìm thấy tài khoản"));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 }

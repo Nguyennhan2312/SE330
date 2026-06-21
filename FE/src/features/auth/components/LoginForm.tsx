@@ -82,10 +82,14 @@ export function LoginForm() {
   // Đọc query params từ trang đăng ký chuyển sang
   useEffect(() => {
     const registered = searchParams.get("registered");
-    const emailParam  = searchParams.get("email");
+    const reset      = searchParams.get("reset");
+    const emailParam = searchParams.get("email");
     if (registered === "1") {
       setNotice("Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.");
       if (emailParam) setEmail(emailParam);
+    }
+    if (reset === "1") {
+      setNotice("Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.");
     }
   }, [searchParams]);
 

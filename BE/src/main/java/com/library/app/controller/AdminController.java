@@ -2,6 +2,7 @@ package com.library.app.controller;
 
 import com.library.app.dto.request.AdminUpdateUserRequest;
 import com.library.app.dto.response.AppResponse.ApiResponse;
+import com.library.app.dto.response.AppResponse.BorrowResponse;
 import com.library.app.dto.response.AppResponse.UserProfile;
 import com.library.app.service.impl.AdminService;
 import jakarta.validation.Valid;
@@ -51,4 +52,19 @@ public class AdminController {
         adminService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.ok("Xóa tài khoản thành công", null));
     }
+
+    /** GET /api/admin/users/{id}/loans — sách đang mượn của user */
+    @GetMapping("/users/{id}/loans")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<BorrowResponse>>> getUserLoans(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getUserLoans(id)));
+    }
+
+    /** GET /api/admin/users/{id}/loans/history — lịch sử mượn của user */
+    @GetMapping("/users/{id}/loans/history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<BorrowResponse>>> getUserLoanHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getUserLoanHistory(id)));
+    }
 }
+// thêm vào cuối class (trước dấu } cuối)

@@ -1,6 +1,7 @@
 package com.library.app.controller;
 
 import com.library.app.dto.request.AuthRequest;
+import com.library.app.dto.request.ResetPasswordRequest;
 import com.library.app.dto.response.AppResponse.ApiResponse;
 import com.library.app.dto.response.AppResponse.TokenResponse;
 import com.library.app.dto.response.AppResponse.UserProfile;
@@ -31,5 +32,19 @@ public class AuthController {
     public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody AuthRequest.Login req) {
         TokenResponse token = authService.login(req);
         return ResponseEntity.ok(ApiResponse.ok("Đăng nhập thành công", token));
+    }
+
+    /** POST /api/auth/check-email — kiểm tra email có tồn tại không */
+    @PostMapping("/check-email")
+    public ResponseEntity<ApiResponse<Void>> checkEmail(@RequestBody AuthRequest.Login req) {
+        authService.checkEmail(req.getEmail());
+        return ResponseEntity.ok(ApiResponse.ok("Email hợp lệ", null));
+    }
+
+    /** POST /api/auth/reset-password — đặt lại mật khẩu */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody ResetPasswordRequest req) {
+        authService.resetPassword(req.getEmail(), req.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.ok("Đặt lại mật khẩu thành công", null));
     }
 }
